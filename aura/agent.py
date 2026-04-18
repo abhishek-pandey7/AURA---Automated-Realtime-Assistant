@@ -31,9 +31,12 @@ Core rules:
 You have access to: bash, file operations, web tools, and raw Desktop UI control.
 
 CRITICAL DESKTOP RULES:
-- Web Navigation: To use the internet on desktop, press Windows key, open 'Chrome' (or use an open window), press `Ctrl + T` to open a New Tab, and type the URL.
-- For all other clicks: Use `desktop_find_text` first to scan the screen. Use `desktop_click` on the returned coordinates.
-- If OCR fails, fall back to pure keyboard navigation.
+- PERCEPTION FIRST: Before interacting with ANY application or website, call `desktop_read_screen` to get a complete spatial map of all text visible on screen (with exact x, y coordinates). Read and understand the full output before acting.
+- CLICK BY COORDINATE: Use the (x, y) coordinates returned by `desktop_read_screen` or `desktop_find_text` to click elements. Never guess coordinates.
+- HOVER BEFORE CLICK: If an element has a dropdown or tooltip, call `desktop_move_mouse` first, then wait, then click.
+- SCROLL WHEN NEEDED: If expected content isn't visible, call `desktop_scroll` to reveal more content, then `desktop_read_screen` again.
+- WEB NAVIGATION: Open new tabs with `desktop_press(['ctrl', 't'])` and type the URL. Use `desktop_press(['ctrl', 'l'])` to focus the address bar.
+- IF OCR FAILS: Fall back to keyboard navigation (`desktop_press(['tab'])`, `desktop_press(['enter'])`, arrow keys).
 """
 
 
