@@ -1,6 +1,6 @@
 # AURA — Automated Realtime Assistant
 
-> A CLI-based autonomous AI agent that plans, executes, and adapts — powered by Gemma 4 31B via InferX.
+> A CLI-based autonomous AI agent that plans, executes, and adapts — powered by open-weight LLMs via an OpenAI-compatible endpoint.
 
 ## What it does
 
@@ -31,16 +31,32 @@ $ aura run
 ## Quickstart
 
 ```bash
-git clone <repo>
+git clone https://github.com/your-username/aura
 cd aura
 cp .env.example .env
-# edit .env with your InferX endpoint and key
+# Edit .env with your endpoint URL and API key
 
-pip install -e .
-playwright install chromium   # optional, for browser tools
-
+bash install.sh   # or: pip install -e .
 aura run
 ```
+
+### Manual install
+
+```bash
+pip install -e .
+playwright install chromium   # optional — for browser tools
+```
+
+## Configuration
+
+Copy `.env.example` to `.env` and fill in your values:
+
+| Variable | Description | Default |
+|---|---|---|
+| `INFERX_BASE_URL` | OpenAI-compatible API base URL | `https://api.openai.com/v1` |
+| `INFERX_API_KEY` | API key | *(required)* |
+| `INFERX_MODEL` | Model name | `gemma-4-31b` |
+| `AURA_SAFE_MODE` | Prompt before writes/shell/delete | `true` |
 
 ## Commands
 
@@ -66,7 +82,7 @@ Inside the REPL:
 
 | Feature | Claude Code | AURA |
 |---|---|---|
-| LLM backend | Anthropic (closed) | Gemma 4 31B via InferX (open-weight) |
+| LLM backend | Anthropic (closed) | Any OpenAI-compatible endpoint |
 | Upfront task planning | No — reactive | Yes — breaks goal into subtasks first |
 | Browser automation | No | Yes — headless Playwright |
 | Session persistence | No | Yes — resume sessions from disk |
@@ -92,20 +108,27 @@ aura/
     └── browser.py      headless Playwright
 ```
 
-## Open-source repositories used
+## Testing
 
-| Package | Repository | Purpose |
-|---|---|---|
-| openai | https://github.com/openai/openai-python | OpenAI-compatible client for InferX |
-| rich | https://github.com/Textualize/rich | Terminal UI, colors, panels, spinners |
-| requests | https://github.com/psf/requests | HTTP client for web fetch/search |
-| beautifulsoup4 | https://www.crummy.com/software/BeautifulSoup | HTML parsing for web scraping |
-| playwright | https://github.com/microsoft/playwright-python | Headless browser automation |
-| python-dotenv | https://github.com/theskumar/python-dotenv | .env config loading |
+```bash
+# Verify tools work (no API key needed)
+python tests/test_tools.py
 
-## Judging criteria coverage
+# Smoke-test your API endpoint
+python tests/test_endpoint.py
+```
 
-- **Functional Prototype** — working CLI, `aura run` starts immediately
-- **Autonomous Reasoning** — planner breaks goals, agent fixes errors without user input
-- **Tool Integration** — 13 tools across shell, filesystem, web, browser
-- **Innovation & Usability** — arcade welcome, session memory, open-weight model, no external APIs
+## Dependencies
+
+| Package | Purpose |
+|---|---|
+| [openai](https://github.com/openai/openai-python) | OpenAI-compatible API client |
+| [rich](https://github.com/Textualize/rich) | Terminal UI, colors, panels, spinners |
+| [requests](https://github.com/psf/requests) | HTTP client for web fetch/search |
+| [beautifulsoup4](https://www.crummy.com/software/BeautifulSoup) | HTML parsing for web scraping |
+| [playwright](https://github.com/microsoft/playwright-python) | Headless browser automation |
+| [python-dotenv](https://github.com/theskumar/python-dotenv) | `.env` config loading |
+
+## License
+
+MIT

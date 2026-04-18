@@ -1,13 +1,9 @@
-# env & secrets
+# ── Secrets & environment ─────────────────────────────────────────────────────
 .env
 *.env
+!.env.example
 
-# venv
-.venv/
-venv/
-env/
-
-# Python
+# ── Python ────────────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *.pyo
@@ -16,23 +12,34 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+.eggs/
+*.egg
 
-# AURA sessions
+# ── Virtual environments ──────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+
+# ── AURA session data ─────────────────────────────────────────────────────────
 ~/.aura/
 
-# Mac
+# ── Testing ───────────────────────────────────────────────────────────────────
+.pytest_cache/
+/test-results/
+/playwright-report/
+htmlcov/
+.coverage
+
+# ── macOS ─────────────────────────────────────────────────────────────────────
 .DS_Store
 .AppleDouble
+.LSOverride
 
-# IDE
+# ── IDEs ──────────────────────────────────────────────────────────────────────
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# Playwright
-/test-results/
-/playwright-report/
-
-# Logs
+# ── Logs ──────────────────────────────────────────────────────────────────────
 *.log
