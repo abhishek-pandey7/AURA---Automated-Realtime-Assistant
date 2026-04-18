@@ -74,3 +74,13 @@ def confirm_delete(path: str) -> bool:
 
 def confirm_browser(action: str, target: str) -> bool:
     return confirm_action(f"perform browser action ({action})", target)
+
+
+def confirm_desktop(action: str, target: str) -> bool:
+    detail = f"Target: {target}"
+    if _is_dangerous(detail) or _is_dangerous(action):
+        return confirm_action(f"perform desktop action ({action})", detail, force=True)
+    
+    # Bypass SAFE_MODE for safe desktop operations
+    console.print(f"  [dim]▶ Auto-approved desktop action: {action}[/dim]")
+    return True

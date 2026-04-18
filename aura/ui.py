@@ -29,6 +29,7 @@ TAGLINE = "Automated  Realtime  Assistant"
 
 HELP_TEXT = """
 [bold cyan]Commands:[/bold cyan]
+  [bold]/voice[/bold]      Speak a command using your microphone
   [bold]/help[/bold]       Show this help
   [bold]/clear[/bold]      Clear conversation history
   [bold]/sessions[/bold]   List past sessions
@@ -156,6 +157,33 @@ def handle_command(cmd: str, memory: Memory) -> tuple[bool, Memory]:
     return True, memory
 
 
+def capture_voice() -> str:
+    import speech_recognition as sr
+    r = sr.Recognizer()
+    r.energy_threshold = 300
+    r.dynamic_energy_threshold = True
+    r.pause_threshold = 1.0
+
+    try:
+        with sr.Microphone() as source:
+            console.print("\n[bold green]🎤 VOICE MODE[/bold green]")
+            console.print("[cyan]Adjusting for background noise...[/cyan]")
+            r.adjust_for_ambient_noise(source, duration=1)
+            console.print("[cyan]Listening... Speak now.[/cyan]")
+            audio = r.listen(source, timeout=10, phrase_time_limit=15)
+        
+        console.print("[yellow]Transcribing...[/yellow]")
+        text = r.recognize_google(audio).strip()
+        if not text:
+            console.print("[red]No speech detected.[/red]")
+            return ""
+            
+        console.print(f"[bold green]You said:[/bold green] {text}\n")
+        return text
+    except Exception as e:
+        console.print(f"[red]Voice capture failed:[/red] {e}")
+        return ""
+
 def run_repl():
     """
     Main REPL loop. Prints welcome, accepts user input, runs agent.
@@ -173,8 +201,13 @@ def run_repl():
 
             # Slash commands
             if user_input.startswith("/"):
-                _, memory = handle_command(user_input, memory)
-                continue
+                if user_input.lower() == "/voice":
+                    user_input = capture_voice()
+                    if not user_input:
+                        continue
+                else:
+                    _, memory = handle_command(user_input, memory)
+                    continue
 
             # ── Goal received — plan then execute ─────────────────────────
             console.print()

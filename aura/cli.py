@@ -76,6 +76,15 @@ def _run_single(goal: str):
     for task in tasks:
         agent.run_agent(task, memory)
 
+    # Speak when done
+    try:
+        import pyttsx3
+        engine = pyttsx3.init()
+        engine.say("Task completed successfully, Abhishek.")
+        engine.runAndWait()
+    except Exception:
+        pass
+
 
 if __name__ == "__main__":
     main()

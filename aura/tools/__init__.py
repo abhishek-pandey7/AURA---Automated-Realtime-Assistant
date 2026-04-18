@@ -1,10 +1,10 @@
-from aura.tools import shell, filesystem, web, browser
+from aura.tools import shell, filesystem, web, desktop
 
 ALL_TOOL_DEFS = (
     [shell.TOOL_DEF]
     + filesystem.TOOL_DEFS
     + web.TOOL_DEFS
-    + browser.TOOL_DEFS
+    + desktop.TOOL_DEFS
 )
 
 def dispatch(name: str, inputs: dict) -> str:
@@ -25,15 +25,17 @@ def dispatch(name: str, inputs: dict) -> str:
             return web.web_fetch(inputs["url"], inputs.get("max_chars", 4000))
         case "web_search":
             return web.web_search(inputs["query"], inputs.get("max_results", 5))
-        case "browser_navigate":
-            return browser.browser_navigate(inputs["url"])
-        case "browser_click":
-            return browser.browser_click(inputs["selector"])
-        case "browser_fill":
-            return browser.browser_fill(inputs["selector"], inputs["value"])
-        case "browser_get_text":
-            return browser.browser_get_text()
-        case "browser_screenshot":
-            return browser.browser_screenshot(inputs["path"])
+        case "desktop_click":
+            return desktop.desktop_click(inputs["x"], inputs["y"], inputs.get("clicks", 1), inputs.get("button", "left"))
+        case "desktop_type":
+            return desktop.desktop_type(inputs["text"], inputs.get("press_enter", False))
+        case "desktop_press":
+            return desktop.desktop_press(inputs["keys"])
+        case "desktop_get_position":
+            return desktop.desktop_get_position()
+        case "desktop_find_text":
+            return desktop.desktop_find_text(inputs["text"])
+        case "desktop_analyze_screen":
+            return desktop.desktop_analyze_screen(inputs["reason"])
         case _:
             return f"[ AURA ] Unknown tool: {name}"

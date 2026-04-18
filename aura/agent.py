@@ -28,7 +28,12 @@ Core rules:
 6. Never ask the user for information you can discover yourself with tools.
 7. Only ask the user if you genuinely need a decision only they can make.
 
-You have access to: bash, file read/write/patch/delete, web search, web fetch, and browser automation.
+You have access to: bash, file operations, web tools, and raw Desktop UI control.
+
+CRITICAL DESKTOP RULES:
+- Web Navigation: To use the internet on desktop, press Windows key, open 'Chrome' (or use an open window), press `Ctrl + T` to open a New Tab, and type the URL.
+- For all other clicks: Use `desktop_find_text` first to scan the screen. Use `desktop_click` on the returned coordinates.
+- If OCR fails, fall back to pure keyboard navigation.
 """
 
 
@@ -47,21 +52,36 @@ def run_agent(goal: str, memory: Memory, max_iterations: int = 30) -> str:
 
         # ── LLM call ─────────────────────────────────────────────────────
         with console.status("[bold cyan]AURA is thinking...[/bold cyan]", spinner="dots"):
-            try:
-                response = _client.chat.completions.create(
-                    model=INFERX_MODEL,
-                    max_tokens=4096,
-                    messages=[
-                        {"role": "system", "content": system},
-                        *memory.get_messages(),
-                    ],
-                    tools=ALL_TOOL_DEFS,
-                    tool_choice="auto",
-                    temperature=0.3,
-                )
-            except Exception as e:
-                console.print(f"[bold red]LLM error:[/bold red] {e}")
-                return f"Agent stopped: {e}"
+            response = None
+            last_error = None
+            for p_retry in range(3):
+                try:
+                    response = _client.chat.completions.create(
+                        model=INFERX_MODEL,
+                        max_tokens=4096,
+                        messages=[
+                            {"role": "system", "content": system},
+                            *memory.get_messages(),
+                        ],
+                        tools=ALL_TOOL_DEFS,
+                        tool_choice="auto",
+                        temperature=0.3,
+                    )
+                    break  # Success
+                except Exception as e:
+                    import time
+                    err_str = str(e)
+                    last_error = e
+                    if "502" in err_str or "500" in err_str or "503" in err_str:
+                        console.print(f"  [dim]Proxy glitch ({e}) — retrying ({p_retry+1}/3)...[/dim]")
+                        time.sleep(2)
+                        continue
+                    else:
+                        break  # Break for 4xx errors
+                        
+            if response is None:
+                console.print(f"[bold red]LLM error:[/bold red] {last_error}")
+                return f"Agent stopped: {last_error}"
 
         choice = response.choices[0]
         message = choice.message
@@ -133,18 +153,35 @@ def run_agent(goal: str, memory: Memory, max_iterations: int = 30) -> str:
                 "content": result,
             })
 
-        # Feed all tool results back as a single user message
-        # (OpenAI format: role=tool per call)
-        tool_messages = [
-            {
+        for item in tool_result_contents:
+            raw_content = item["content"]
+            image_url = None
+            
+            # Intercept images passed from the desktop_analyze_screen tool
+            if "[ IMAGE_BASE64: " in raw_content:
+                start_i = raw_content.find("[ IMAGE_BASE64: ") + len("[ IMAGE_BASE64: ")
+                end_i = raw_content.find(" ]", start_i)
+                if end_i != -1:
+                    image_url = raw_content[start_i:end_i].strip()
+                    # Strip the raw base64 from the tool message string to prevent bloat
+                    raw_content = raw_content[:start_i - len("[ IMAGE_BASE64: ")] + "[ screenshot attached in next message ]" + raw_content[end_i+2:]
+            
+            memory.messages.append({
                 "role": "tool",
                 "tool_call_id": item["tool_use_id"],
-                "content": item["content"],
-            }
-            for item in tool_result_contents
-        ]
-        for tm in tool_messages:
-            memory.messages.append(tm)
+                "content": raw_content,
+            })
+            
+            if image_url:
+                # Add the actual image as a subsequent user message (OpenAI standard)
+                memory.messages.append({
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": "Screenshot captured:"},
+                        {"type": "image_url", "image_url": {"url": image_url}}
+                    ]
+                })
+                
         memory._save()
 
     console.print("[bold yellow]⚠ Max iterations reached.[/bold yellow]")
@@ -166,6 +203,10 @@ def _print_tool_call(name: str, inputs: dict):
         "browser_fill": "green",
         "browser_get_text": "green",
         "browser_screenshot": "green",
+        "desktop_click": "magenta",
+        "desktop_type": "magenta",
+        "desktop_press": "magenta",
+        "desktop_get_position": "magenta",
     }
     color = color_map.get(name, "white")
 
@@ -182,6 +223,14 @@ def _print_tool_call(name: str, inputs: dict):
             inputs.get("url")
             or inputs.get("selector")
             or inputs.get("path")
+            or ""
+        )
+    elif name.startswith("desktop_"):
+        detail = (
+            inputs.get("text")
+            or "+".join(inputs.get("keys", []))
+            or f"({inputs.get('x', '')}, {inputs.get('y', '')})"
+            or inputs.get("reason")
             or ""
         )
     else:

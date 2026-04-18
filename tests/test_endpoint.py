@@ -24,13 +24,13 @@ BASE_URL = os.getenv("INFERX_BASE_URL", "")
 API_KEY  = os.getenv("INFERX_API_KEY", "")
 MODEL    = os.getenv("INFERX_MODEL", "gemma-4-31b")
 
-print(f"\n── InferX Endpoint Test ────────────────────────────────────────")
+print(f"\n-- InferX Endpoint Test ----------------------------------------")
 print(f"  URL:   {BASE_URL or '(not set)'}")
 print(f"  Model: {MODEL}")
 print()
 
 if not BASE_URL or not API_KEY:
-    print("  ✗ INFERX_BASE_URL or INFERX_API_KEY not set in .env")
+    print("  x INFERX_BASE_URL or INFERX_API_KEY not set in .env")
     print("    Edit .env and run again.")
     sys.exit(1)
 
@@ -47,11 +47,11 @@ try:
     )
     reply = r.choices[0].message.content or ""
     if "AURA_OK" in reply:
-        print(f"  ✓ Got expected response")
+        print(f"  v Got expected response")
     else:
-        print(f"  ⚠ Got response but content unexpected: {reply[:100]}")
+        print(f"  ! Got response but content unexpected: {reply[:100]}")
 except Exception as e:
-    print(f"  ✗ Failed: {e}")
+    print(f"  x Failed: {e}")
     sys.exit(1)
 
 
@@ -84,9 +84,9 @@ try:
     if msg.tool_calls:
         tc = msg.tool_calls[0]
         args = json.loads(tc.function.arguments)
-        print(f"  ✓ Tool called: {tc.function.name}({args})")
+        print(f"  v Tool called: {tc.function.name}({args})")
     else:
-        print(f"  ⚠ No tool call made — model replied with text instead.")
+        print(f"  ! No tool call made — model replied with text instead.")
         print(f"    This may cause issues. Response: {msg.content[:100]}")
         print(f"    Try adding to system prompt: 'You MUST use tools.'")
 except Exception as e:
@@ -121,15 +121,14 @@ try:
     data = json.loads(clean)
     tasks = data.get("tasks", [])
     if tasks:
-        print(f"  ✓ JSON output works. Got {len(tasks)} tasks.")
+        print(f"  v JSON output works. Got {len(tasks)} tasks.")
     else:
-        print(f"  ⚠ Parsed JSON but no 'tasks' key. Raw: {raw[:100]}")
+        print(f"  ! Parsed JSON but no 'tasks' key. Raw: {raw[:100]}")
 except json.JSONDecodeError as e:
-    print(f"  ⚠ JSON parse failed: {e}")
+    print(f"  ! JSON parse failed: {e}")
     print(f"    Raw output: {raw[:200]}")
     print(f"    Planner will fall back to treating goal as single task — OK for demo.")
 except Exception as e:
-    print(f"  ✗ Failed: {e}")
+    print(f"  x Failed: {e}")
 
-
-print("\n── Done. If tests 1 and 2 pass, AURA is ready to run. ──────────\n")
+print("\n-- Done. If tests 1 and 2 pass, AURA is ready to run. ----------\n")

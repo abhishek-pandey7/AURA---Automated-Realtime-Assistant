@@ -1,6 +1,6 @@
 [build-system]
 requires = ["setuptools>=68", "setuptools-scm"]
-build-backend = "setuptools.backends.legacy:build"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "aura-agent"
@@ -13,6 +13,12 @@ dependencies = [
     "rich>=13.0.0",
     "python-dotenv>=1.0.0",
     "playwright>=1.40.0",
+    "PyAutoGUI>=0.9.54",
+    "Pillow>=10.0.0",
+    "winsdk>=1.0.0b10",
+    "SpeechRecognition>=3.10.0",
+    "pyaudio>=0.2.14",
+    "pyttsx3>=2.90",
 ]
 
 [project.scripts]
@@ -20,4 +26,4 @@ aura = "aura.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["aura*"]
+include = ["aura"]
