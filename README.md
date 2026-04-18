@@ -4,7 +4,7 @@
 
 ## What it does
 
-You type a goal in plain English. AURA breaks it into steps, executes them using tools (shell, files, web, browser), reads the results, fixes errors, and reports back — without you doing anything else.
+You type a goal in plain English. AURA breaks it into steps, executes them using tools (shell, files, web, browser, desktop), reads the results, fixes errors, and reports back — without you doing anything else.
 
 ```
 $ aura run
@@ -35,17 +35,61 @@ git clone https://github.com/your-username/aura
 cd aura
 cp .env.example .env
 # Edit .env with your endpoint URL and API key
+```
 
-bash install.sh   # or: pip install -e .
+### macOS / Linux
+
+```bash
+bash install.sh
+source .venv/bin/activate
+aura run
+```
+
+### Windows
+
+```bat
+install.bat
+.venv\Scripts\activate
 aura run
 ```
 
 ### Manual install
 
 ```bash
+python3 -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -e .
-playwright install chromium   # optional — for browser tools
+playwright install chromium      # optional — for browser tools
 ```
+
+## Platform Notes
+
+### macOS (Apple Silicon & Intel)
+
+`pyaudio` and `SpeechRecognition` require native system libraries. The `install.sh` script handles these automatically. If you install manually:
+
+```bash
+# Required for /voice command
+brew install portaudio flac
+
+pip install -e .
+
+# Fix SpeechRecognition's bundled flac binary on Apple Silicon
+# (it ships an Intel x86 binary that won't run on arm64)
+FLAC_DST=".venv/lib/$(python3 -c 'import sys; print(f"python{sys.version_info.major}.{sys.version_info.minor}")')/site-packages/speech_recognition/flac-mac"
+cp /opt/homebrew/bin/flac "$FLAC_DST"
+```
+
+### Windows
+
+All dependencies install via pip. If `pyaudio` fails (no pre-built wheel):
+
+```bat
+pip install pipwin
+pipwin install pyaudio
+```
+
+The `desktop_find_text` tool uses Windows OCR (`winsdk`) and is Windows-only. All other tools work cross-platform.
 
 ## Configuration
 
@@ -70,12 +114,13 @@ Inside the REPL:
 
 | Command | Description |
 |---|---|
+| `/voice` | Speak a command using your microphone |
 | `/help` | Show help |
 | `/clear` | Clear conversation |
 | `/sessions` | List past sessions |
 | `/resume` | Resume a saved session |
 | `/tools` | List all tools |
-| `/cwd` | Show working directory |
+| `/cwd` | Show current working directory |
 | `/exit` | Quit |
 
 ## How it differs from Claude Code / Codex
@@ -102,10 +147,11 @@ aura/
 ├── confirm.py      Y/N prompts for dangerous actions
 ├── config.py       Environment config
 └── tools/
-    ├── shell.py        bash execution
+    ├── shell.py        bash / cmd execution
     ├── filesystem.py   read / write / patch / delete
     ├── web.py          web search + fetch (no API)
-    └── browser.py      headless Playwright
+    ├── browser.py      headless Playwright
+    └── desktop.py      mouse, keyboard, screen capture, OCR (Windows)
 ```
 
 ## Testing
@@ -120,14 +166,20 @@ python tests/test_endpoint.py
 
 ## Dependencies
 
-| Package | Purpose |
-|---|---|
-| [openai](https://github.com/openai/openai-python) | OpenAI-compatible API client |
-| [rich](https://github.com/Textualize/rich) | Terminal UI, colors, panels, spinners |
-| [requests](https://github.com/psf/requests) | HTTP client for web fetch/search |
-| [beautifulsoup4](https://www.crummy.com/software/BeautifulSoup) | HTML parsing for web scraping |
-| [playwright](https://github.com/microsoft/playwright-python) | Headless browser automation |
-| [python-dotenv](https://github.com/theskumar/python-dotenv) | `.env` config loading |
+| Package | Purpose | Platform |
+|---|---|---|
+| [openai](https://github.com/openai/openai-python) | OpenAI-compatible API client | All |
+| [rich](https://github.com/Textualize/rich) | Terminal UI, colors, panels, spinners | All |
+| [requests](https://github.com/psf/requests) | HTTP client for web fetch/search | All |
+| [beautifulsoup4](https://www.crummy.com/software/BeautifulSoup) | HTML parsing for web scraping | All |
+| [playwright](https://github.com/microsoft/playwright-python) | Headless browser automation | All |
+| [python-dotenv](https://github.com/theskumar/python-dotenv) | `.env` config loading | All |
+| [PyAutoGUI](https://github.com/asweigart/pyautogui) | Mouse/keyboard desktop control | All |
+| [Pillow](https://github.com/python-pillow/Pillow) | Image processing for screenshots | All |
+| [SpeechRecognition](https://github.com/Uberi/speech_recognition) | Voice input via microphone | All (needs portaudio) |
+| [pyaudio](https://people.csail.mit.edu/hubert/pyaudio/) | Audio capture for voice mode | All (needs brew install portaudio on Mac) |
+| [pyttsx3](https://github.com/nateshmbhat/pyttsx3) | Text-to-speech output | All |
+| [winsdk](https://github.com/pywinrt/python-winsdk) | Windows OCR for `desktop_find_text` | Windows only |
 
 ## License
 

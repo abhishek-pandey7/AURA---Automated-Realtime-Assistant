@@ -167,33 +167,37 @@ def desktop_analyze_screen(reason: str) -> str:
         return f"[ AURA ] Screen capture failed: {e}"
 
 def desktop_find_text(text: str) -> str:
+    import sys
+    if sys.platform != "win32":
+        return "[ AURA ] desktop_find_text uses Windows OCR (winsdk) and is only available on Windows."
+
     import asyncio
     import io
     from winsdk.windows.media.ocr import OcrEngine
     from winsdk.windows.graphics.imaging import BitmapDecoder
     from winsdk.windows.storage.streams import InMemoryRandomAccessStream, DataWriter
-    
+
     async def _find():
         img = pyautogui.screenshot()
         img_byte_arr = io.BytesIO()
         img.save(img_byte_arr, format='BMP')
-        
+
         stream = InMemoryRandomAccessStream()
         writer = stream.get_output_stream_at(0)
         d_writer = DataWriter(writer)
         d_writer.write_bytes(img_byte_arr.getvalue())
         await d_writer.store_async()
         await d_writer.flush_async()
-        
+
         decoder = await BitmapDecoder.create_async(stream)
         software_bitmap = await decoder.get_software_bitmap_async()
-        
+
         engine = OcrEngine.try_create_from_user_profile_languages()
         if not engine:
             return "[ AURA ] OCR Engine failed to initialize."
-        
+
         result = await engine.recognize_async(software_bitmap)
-        
+
         matches = []
         target = text.lower()
         for line in result.lines:
@@ -216,13 +220,13 @@ def desktop_find_text(text: str) -> str:
                     rect = words[0].bounding_rect
                     x = int(rect.x + (rect.width/2))
                     y = int(rect.y + (rect.height/2))
-                
+
                 matches.append(f"'{line.text}' at ({x}, {y})")
-        
+
         if not matches:
             return f"[ AURA ] Text '{text}' not found on screen."
         return "[ AURA ] Found texts matching your query:\n" + "\n".join(matches)
-        
+
     try:
         return asyncio.run(_find())
     except Exception as e:
