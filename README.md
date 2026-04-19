@@ -1,186 +1,254 @@
-# AURA — Automated Realtime Assistant
+# AURA - Automated Realtime Assistant
 
-> A CLI-based autonomous AI agent that plans, executes, and adapts — powered by open-weight LLMs via an OpenAI-compatible endpoint.
+A CLI-based autonomous AI agent that plans, executes, and adapts. Powered by open-weight LLMs via an OpenAI-compatible endpoint, AURA is designed to bridge the gap between simple text-based AI assistants and full-fledged system operators. 
 
-## What it does
+From writing complete projects in an IDE to utilizing custom computer vision for desktop interaction, AURA interacts with your operating system the same way you do.
 
-You type a goal in plain English. AURA breaks it into steps, executes them using tools (shell, files, web, browser, desktop), reads the results, fixes errors, and reports back — without you doing anything else.
+---
 
-```
+## 1. Overview
+
+You provide a goal in natural language. AURA takes that goal, breaks it down into a chronological sequence of steps, and autonomously executes each step using a suite of native tools (shell execution, filesystem manipulation, web browsing, and raw desktop input). 
+
+Unlike simple code-generation tools, AURA operates in an **Observe -> Think -> Act -> Verify** feedback loop. If a test fails, a layout changes, or an error is thrown, AURA reads the output, adjusts its plan, and tries a new approach without needing manual intervention.
+
+Example Execution Trace:
+```text
 $ aura run
-     ██████╗ ██╗   ██╗██████╗  █████╗ 
-    ...
 
-› Build a Flask REST API with /users endpoint, write tests, run them, fix any failures
+> Build a simple Flask web hook, write tests, run them, and ensure it passes.
 
-◆ Plan
-  1. Create project directory and app.py with Flask
-  2. Implement /users GET and POST endpoints
-  3. Write pytest tests in test_app.py
-  4. Run tests and fix any failures
+Plan
+  1. Create project directory and initialize Python files.
+  2. Implement Flask app with a basic POST endpoint.
+  3. Write pytest test suite.
+  4. Run tests and self-correct any failures.
 
-▶ bash  $ mkdir flask_app && cd flask_app
-▶ write_file  flask_app/app.py
-▶ write_file  flask_app/test_app.py
-▶ bash  $ cd flask_app && pytest -v
-▶ patch_file  flask_app/app.py   ← auto-fixing failure
-▶ bash  $ pytest -v
-✓ All tasks complete
+Action      bash         $ mkdir hook_test && cd hook_test
+Action      write_file   hook_test/app.py
+Action      write_file   hook_test/test_app.py
+Action      bash         $ cd hook_test && pytest -v
+Observation 1 failed, 0 passed
+Action      patch_file   hook_test/app.py   (Self-Correcting issue)
+Action      bash         $ pytest -v
+Observation 1 passed
 ```
 
-## Quickstart
+---
 
+## 2. Advanced Capabilities
+
+AURA goes significantly beyond shell and file manipulation. It incorporates profound systems designed for complex operating workflows:
+
+### Full-Screen Spatial Desktop Vision
+AURA does not rely purely on text matching or hardcoded coordinates. It features a complete **Desktop Vision Engine** capable of reading the entire screen layout. It generates a structured spatial map of text and UI elements. This allows AURA to:
+- Intelligently understand the visual hierarchy of an application.
+- Perform coordinate-based interaction, scrolling, and hover-based navigation on any application, even those not strictly accessible via an API.
+- Recover from aggressive bot protection or captchas by visually parsing interfaces.
+
+### Imitation Learning ("Watch and Learn")
+AURA can learn directly from your behavior. By activating Imitation Learning, AURA uses `pynput` to listen to your mouse clicks, keyboard inputs, and navigation habits. It captures these user actions and passes them to a Vision-Language Model (VLM) code generation pipeline. 
+This pipeline synthesizes your organic workflow into reusable Python macros utilizing `pyautogui`. Once generated, AURA dynamically registers these new macros at runtime, adding them permanently to its toolchain. 
+
+### Persistent Browser Automation
+AURA does not just use stateless HTML scraping. It incorporates headless and non-headless browser automation (utilizing Playwright) that integrates directly with your active Chrome profiles. This enables:
+- A deterministic navigation sequence: Launch, focus Chrome, navigate to a target URL, and interact seamlessly.
+- State persistence: Logins and cookies from your active Chrome profile allow AURA to perform tasks as an authenticated user.
+- Real-time interaction with elements like search bars, infinite scrolling feeds, and dynamically generated single-page applications.
+
+### Deep Integration Capabilities
+AURA features dedicated automation pipelines for standard office workflows:
+- **Google Meet & Calendar**: Autonomously schedule video conferences, draft meeting agendas, and dynamically email Google Meet links to intended participants.
+- **Google Forms**: Interactively fill out complex web forms relying on a secure, locally-stored user profile and historical context.
+
+---
+
+## 3. Tool Architecture
+
+AURA is equipped with a vast tool registry. The agent decides precisely when and how to deploy these tools.
+
+*   **Filesystem Controls**: Read documents, overwrite source files, incrementally patch files, create/delete directories.
+*   **Shell Controls**: Execute bash or windows command prompt operations. Read STDOUT and STDERR to verify outcomes.
+*   **Web Engine**: Pure HTTP retrieval, localized scraping, and pure web searching to inject research before generating code.
+*   **Desktop Controls**: Control the mouse matrix, simulate keyboard events at the OS level, deploy Windows OCR and Tesseract screen captures.
+*   **Playwright Engine**: Fully capable Chrome orchestration for front-end manipulation.
+
+---
+
+## 4. How it Differs from Cloud Coding Assistants
+
+| Feature | Cloud Assistants (e.g., Claude Code, Codex) | AURA |
+| --- | --- | --- |
+| Underlying LLM Engine | Proprietary (Anthropic/OpenAI) | Agnostic / Self-hostable (Any OpenAI-compatible API) |
+| Architecture Philosophy | Reactive to simple instructions | Proactive upfront Task Planning |
+| Desktop & Computer Vision | No | Yes (OS-level Mouse/KB bindings & OCR map generation) |
+| Organic Imitation Learning | No | Yes (Macro generation via pynput/VLM) |
+| Browser Handling | Limited HTML curl | Native Playwright bindings with Profile Persistence |
+| Confirmation Guards | Yes | Yes (Granular Y/N safeguards for Destructive actions) |
+| Complete Autonomy | Low, prompts constantly | High, handles multi-hour execution chains |
+
+---
+
+## 5. Software Architecture
+
+```
+aura/
+|-- __init__.py
+|-- cli.py              Command Line entry point
+|-- ui.py               Rich Terminal UI, spinners, and REPL loop integration
+|-- agent.py            The core LLM prompt loop. Feeds observations back into memory.
+|-- planner.py          Converts overarching instructions into ordered subtask structures.
+|-- memory.py           Abstracts conversation persistence, contextual truncation, and state saving.
+|-- learning.py         Imitation learning loop, VLM code synthesis, and runtime macro injection.
+|-- confirm.py          Prompts human-in-the-loop validation for sys-admin actions.
+|-- config.py           Validates and orchestrates the environment config payload.
+|-- tools/
+    |-- shell.py        Isolated subprocess deployment.
+    |-- filesystem.py   Advanced string manipulation and file targeting.
+    |-- browser.py      AURA browser automation engine targeting Playwright.
+    |-- web.py          General HTTP handlers.
+    |-- desktop.py      Windows/macOS computer vision interface.
+    |-- forms.py        Automated data filling engine.
+    |-- meet.py         Conference scheduler integration.
+    |-- ...             (various generated action macros)
+```
+
+---
+
+## 6. Installation
+
+Provide the necessary execution credentials in a configuration file:
 ```bash
-git clone https://github.com/your-username/aura
-cd aura
+git clone https://github.com/your-username/LimitHitters_Syn3rgy_AbhishekPandey
+cd LimitHitters_Syn3rgy_AbhishekPandey
 cp .env.example .env
-# Edit .env with your endpoint URL and API key
 ```
 
-### macOS / Linux
-
+### macOS / Linux automated setup
 ```bash
 bash install.sh
 source .venv/bin/activate
 aura run
 ```
 
-### Windows
-
+### Windows automated setup
 ```bat
 install.bat
 .venv\Scripts\activate
 aura run
 ```
 
-### Manual install
-
+### Manual Dependency Installation
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -e .
-playwright install chromium      # optional — for browser tools
+playwright install chromium      # To support browser tooling
 ```
 
-## Platform Notes
+---
+
+## 7. Configuration Details
+
+Modify your locally generated `.env` file to dictate how AURA behaves.
+
+| Variable | Description | Example Default |
+| --- | --- | --- |
+| INFERX_BASE_URL | Base URL of the endpoint | https://api.openai.com/v1 |
+| INFERX_API_KEY | Authorization API key | sk-xxx (Required) |
+| INFERX_MODEL | Targeting Model | gemma-4-31b |
+| AURA_SAFE_MODE | Demand human verification for destructive tool deployments | true |
+
+---
+
+## 8. Platform Specific Setup and Troubleshooting
 
 ### macOS (Apple Silicon & Intel)
-
-`pyaudio` and `SpeechRecognition` require native system libraries. The `install.sh` script handles these automatically. If you install manually:
+The `pyaudio` and `SpeechRecognition` libraries require native system dependencies in order to parse host-level audio successfully. The `install.sh` sequence usually handles this via Homebrew. If you prefer to install manually:
 
 ```bash
-# Required for /voice command
+# Needed for internal audio processing and /voice commands
 brew install portaudio flac
-
 pip install -e .
 
-# Fix SpeechRecognition's bundled flac binary on Apple Silicon
-# (it ships an Intel x86 binary that won't run on arm64)
+# Manual Fix: SpeechRecognition on Apple Silicon ships an x86 flac binary by default.
+# The following script explicitly assigns the native ARM flac binary to the Python package.
 FLAC_DST=".venv/lib/$(python3 -c 'import sys; print(f"python{sys.version_info.major}.{sys.version_info.minor}")')/site-packages/speech_recognition/flac-mac"
 cp /opt/homebrew/bin/flac "$FLAC_DST"
 ```
 
 ### Windows
-
-All dependencies install via pip. If `pyaudio` fails (no pre-built wheel):
-
+Normally all dependencies correctly install via typical `pip` channels. On some environments `pyaudio` lacks a pre-compiled wheel for your python distribution:
 ```bat
 pip install pipwin
 pipwin install pyaudio
 ```
 
-The `desktop_find_text` tool uses Windows OCR (`winsdk`) and is Windows-only. All other tools work cross-platform.
+*Note: The native `desktop_find_text` and vision toolkit incorporates Windows native UI SDK (`winsdk`) for OCR, running exceptionally fast on Windows environments. Cross-platform counterparts substitute internal libraries as needed.*
 
-## Configuration
+---
 
-Copy `.env.example` to `.env` and fill in your values:
+## 9. Comprehensive CLI & REPL Commands
 
-| Variable | Description | Default |
-|---|---|---|
-| `INFERX_BASE_URL` | OpenAI-compatible API base URL | `https://api.openai.com/v1` |
-| `INFERX_API_KEY` | API key | *(required)* |
-| `INFERX_MODEL` | Model name | `gemma-4-31b` |
-| `AURA_SAFE_MODE` | Prompt before writes/shell/delete | `true` |
+Initiating the CLI:
 
-## Commands
+| CLI arguments | Output |
+| --- | --- |
+| `aura run` | Starts the interactive continuous session |
+| `aura run "Target Context"` | Submits a single task instruction, completes it, and exits |
+| `aura version` | Display tool version information |
 
-| Command | Description |
-|---|---|
-| `aura run` | Start interactive session |
-| `aura run "goal"` | Run one goal and exit |
-| `aura version` | Show version |
+In-session Agent REPL Controls:
 
-Inside the REPL:
+| Target Command | Execution Result |
+| --- | --- |
+| `/voice` | Engages Speech-To-Text pipeline for hands-free queries |
+| `/help` | Explains all commands |
+| `/clear` | Generates a clean slate by purging the context window |
+| `/sessions` | Parses and lists serialized past execution chains |
+| `/resume` | Hooks an old execution chain back into the present context |
+| `/tools` | Dumps the locally detected tool payloads |
+| `/learn` | Manually invokes the Imitation Learning capture stream |
+| `/cwd` | Returns the current scope path |
+| `/exit` | Gracefully terminate |
 
-| Command | Description |
-|---|---|
-| `/voice` | Speak a command using your microphone |
-| `/help` | Show help |
-| `/clear` | Clear conversation |
-| `/sessions` | List past sessions |
-| `/resume` | Resume a saved session |
-| `/tools` | List all tools |
-| `/cwd` | Show current working directory |
-| `/exit` | Quit |
+---
 
-## How it differs from Claude Code / Codex
+## 10. Verification & Tests
 
-| Feature | Claude Code | AURA |
-|---|---|---|
-| LLM backend | Anthropic (closed) | Any OpenAI-compatible endpoint |
-| Upfront task planning | No — reactive | Yes — breaks goal into subtasks first |
-| Browser automation | No | Yes — headless Playwright |
-| Session persistence | No | Yes — resume sessions from disk |
-| Web search | No | Yes — no API key needed |
-| Confirmation prompts | Yes | Yes — Y/N for writes, deletes, shell |
-| Self-hostable | No | Yes |
-
-## Architecture
-
-```
-aura/
-├── cli.py          Entry point — `aura run` command
-├── ui.py           Welcome screen + REPL loop
-├── agent.py        Core observe→think→act loop
-├── planner.py      Goal → ordered subtask list
-├── memory.py       Session persistence
-├── confirm.py      Y/N prompts for dangerous actions
-├── config.py       Environment config
-└── tools/
-    ├── shell.py        bash / cmd execution
-    ├── filesystem.py   read / write / patch / delete
-    ├── web.py          web search + fetch (no API)
-    ├── browser.py      headless Playwright
-    └── desktop.py      mouse, keyboard, screen capture, OCR (Windows)
-```
-
-## Testing
-
+To run the verification suite and ensure that your host configuration has correctly bonded with AURA's toolkit:
 ```bash
-# Verify tools work (no API key needed)
+# Validates local filesystem, shell, and offline capability functions
 python tests/test_tools.py
 
-# Smoke-test your API endpoint
+# Validates connectivity and handshakes with the inference server
 python tests/test_endpoint.py
 ```
 
-## Dependencies
+---
+
+## 11. Dependencies List
+
+AURA bridges multiple complex open-source libraries.
 
 | Package | Purpose | Platform |
-|---|---|---|
-| [openai](https://github.com/openai/openai-python) | OpenAI-compatible API client | All |
-| [rich](https://github.com/Textualize/rich) | Terminal UI, colors, panels, spinners | All |
-| [requests](https://github.com/psf/requests) | HTTP client for web fetch/search | All |
-| [beautifulsoup4](https://www.crummy.com/software/BeautifulSoup) | HTML parsing for web scraping | All |
-| [playwright](https://github.com/microsoft/playwright-python) | Headless browser automation | All |
-| [python-dotenv](https://github.com/theskumar/python-dotenv) | `.env` config loading | All |
-| [PyAutoGUI](https://github.com/asweigart/pyautogui) | Mouse/keyboard desktop control | All |
-| [Pillow](https://github.com/python-pillow/Pillow) | Image processing for screenshots | All |
-| [SpeechRecognition](https://github.com/Uberi/speech_recognition) | Voice input via microphone | All (needs portaudio) |
-| [pyaudio](https://people.csail.mit.edu/hubert/pyaudio/) | Audio capture for voice mode | All (needs brew install portaudio on Mac) |
-| [pyttsx3](https://github.com/nateshmbhat/pyttsx3) | Text-to-speech output | All |
-| [winsdk](https://github.com/pywinrt/python-winsdk) | Windows OCR for `desktop_find_text` | Windows only |
+| --- | --- | --- |
+| **openai** | Universal mapping to standard LLM endpoints | All |
+| **rich** | Renders formatted syntax, tables, and progress indicators | All |
+| **requests** | Low level network manipulation and API access | All |
+| **beautifulsoup4** | Standardizing HTML trees | All |
+| **playwright** | Deep orchestration of WebKit and Chromium processes | All |
+| **python-dotenv** | Inject configurations to the environment safely | All |
+| **PyAutoGUI** | Abstraction of mouse and keyboard simulations | All |
+| **pynput** | Hardware hook extraction for Imitation Learning algorithms | All |
+| **Pillow** | Memory processing of visual data and screen captures | All |
+| **SpeechRecognition** | Decodes array segments to semantic strings | All |
+| **pyaudio** | Live PCM translation from active system microphones | All |
+| **pyttsx3** | Local text-to-voice synthesization | All |
+| **winsdk** | Native, ultra-low-latency OCR engine mappings | Windows |
 
-## License
+---
 
-MIT
+## 12. License
+
+Released under standard MIT License privileges.
