@@ -259,7 +259,9 @@ def desktop_read_screen() -> str:
         return header + "\n" + "\n".join(lines_out)
 
     try:
-        return asyncio.run(_read())
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor(1) as pool:
+            return pool.submit(asyncio.run, _read()).result()
     except Exception as e:
         return f"[ AURA ] Screen read failed: {e}"
 
@@ -308,7 +310,9 @@ def desktop_find_text(text: str) -> str:
         return "[ AURA ] Matches found:\n" + "\n".join(matches)
 
     try:
-        return asyncio.run(_find())
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor(1) as pool:
+            return pool.submit(asyncio.run, _find()).result()
     except Exception as e:
         return f"[ AURA ] Screen OCR failed: {e}"
 

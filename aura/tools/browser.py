@@ -81,8 +81,35 @@ class BrowserSession:
         if self._page is None:
             from playwright.sync_api import sync_playwright
             self._playwright = sync_playwright().start()
-            self._browser = self._playwright.chromium.launch(headless=True)
-            self._page = self._browser.new_page()
+            
+            user_data_dir = r"C:\Users\Abhishek Pandey\AppData\Local\Google\Chrome\User Data"
+            
+            try:
+                # 1) Try to connect via CDP if they launched Chrome with remote debugging
+                self._browser = self._playwright.chromium.connect_over_cdp("http://localhost:9222")
+                context = self._browser.contexts[0] if self._browser.contexts else self._browser
+                self._page = context.pages[0] if getattr(context, 'pages', []) else context.new_page()
+                print("\n[ AURA ] Connected to existing Chrome via remote debugging.")
+                
+            except Exception:
+                try:
+                    # 2) Try to launch their persistent Google Chrome profile
+                    self._browser_context = self._playwright.chromium.launch_persistent_context(
+                        user_data_dir=user_data_dir,
+                        channel="chrome",
+                        headless=False,
+                        args=["--start-maximized"]
+                    )
+                    self._browser = None # Using context instead
+                    self._page = self._browser_context.pages[0] if self._browser_context.pages else self._browser_context.new_page()
+                    print("\n[ AURA ] Launched your existing Chrome profile.")
+                except Exception as e:
+                    print("\n[ AURA ] Could not launch your real Chrome profile (is Chrome already open?)")
+                    print("[ AURA ] Please completely close your Google Chrome browser and try again, or launch it with --remote-debugging-port=9222.")
+                    print("[ AURA ] Falling back to a clean isolated Chromium window...")
+                    # 3) Fallback
+                    self._browser = self._playwright.chromium.launch(headless=False)
+                    self._page = self._browser.new_page()
 
     def navigate(self, url: str) -> str:
         if not confirm_browser("navigate", url):
@@ -99,11 +126,11 @@ class BrowserSession:
             return "[ AURA ] Browser action cancelled."
         self._ensure_started()
         try:
-            # Try CSS selector first, then visible text
+            # Try CSS selector first, then visible text (fail fast with 3s timeout)
             try:
-                self._page.click(selector, timeout=5000)
+                self._page.click(selector, timeout=3000)
             except Exception:
-                self._page.get_by_text(selector).first.click(timeout=5000)
+                self._page.get_by_text(selector).first.click(timeout=3000)
             return f"[ AURA ] Clicked: {selector}"
         except Exception as e:
             return f"[ AURA ] Click failed: {e}"
@@ -113,7 +140,12 @@ class BrowserSession:
             return "[ AURA ] Browser action cancelled."
         self._ensure_started()
         try:
-            self._page.fill(selector, value)
+            # Try CSS selector with fast timeout
+            try:
+                self._page.fill(selector, value, timeout=3000)
+            except Exception:
+                # Fallback to placeholder text
+                self._page.get_by_placeholder(selector).first.fill(value, timeout=3000)
             return f"[ AURA ] Filled '{selector}' with value."
         except Exception as e:
             return f"[ AURA ] Fill failed: {e}"
@@ -135,12 +167,16 @@ class BrowserSession:
             return f"[ AURA ] Screenshot failed: {e}"
 
     def close(self):
-        if self._browser:
+        if hasattr(self, '_browser_context') and self._browser_context:
+            self._browser_context.close()
+        elif self._browser:
             self._browser.close()
         if self._playwright:
             self._playwright.stop()
         self._page = None
         self._browser = None
+        if hasattr(self, '_browser_context'):
+            self._browser_context = None
         self._playwright = None
 
 

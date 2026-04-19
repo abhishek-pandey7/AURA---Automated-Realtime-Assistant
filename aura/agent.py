@@ -87,6 +87,7 @@ CRITICAL DESKTOP RULES:
 - CLICK BY COORDINATE: Use the (x, y) coordinates returned by `desktop_read_screen` or `desktop_find_text` to click elements. Never guess coordinates.
 - HOVER BEFORE CLICK: If an element has a dropdown or tooltip, call `desktop_move_mouse` first, then wait, then click.
 - SCROLL WHEN NEEDED: If expected content isn't visible, call `desktop_scroll` to reveal more content, then `desktop_read_screen` again.
+- FAST WEB LAUNCHING: If the user asks to "open YouTube", "open X", or ANY web application, use this exact fast sequence: 1) `desktop_press(['win'])`, 2) `desktop_type('chrome', press_enter=True)`, 3) `desktop_type('website_url', press_enter=True)`. Do NOT use headless tools for these requests. Response time must be quick.
 - WEB NAVIGATION: Open new tabs with `desktop_press(['ctrl', 't'])` and type the URL. Use `desktop_press(['ctrl', 'l'])` to focus the address bar.
 - IF OCR FAILS: Fall back to keyboard navigation (`desktop_press(['tab'])`, `desktop_press(['enter'])`, arrow keys).
 """

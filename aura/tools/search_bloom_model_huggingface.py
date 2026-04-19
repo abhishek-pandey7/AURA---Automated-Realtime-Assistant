@@ -22,7 +22,6 @@ def search_bloom_model_huggingface():
     # Click address bar/browser area
     pyautogui.click(1303, 1064)
     time.sleep(1.6)
-    
     # Focus address bar
     pyautogui.click(620, 10)
     time.sleep(0.5)
