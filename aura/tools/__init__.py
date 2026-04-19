@@ -1,10 +1,14 @@
-from aura.tools import shell, filesystem, web, desktop
+from aura.tools import shell, filesystem, web, desktop, calendar, gmail, meet, forms
 
 ALL_TOOL_DEFS = (
     [shell.TOOL_DEF]
     + filesystem.TOOL_DEFS
     + web.TOOL_DEFS
     + desktop.TOOL_DEFS
+    + calendar.TOOL_DEFS
+    + gmail.TOOL_DEFS
+    + meet.TOOL_DEFS
+    + forms.TOOL_DEFS
 )
 
 def dispatch(name: str, inputs: dict) -> str:
@@ -43,5 +47,42 @@ def dispatch(name: str, inputs: dict) -> str:
             return desktop.desktop_find_text(inputs["text"])
         case "desktop_analyze_screen":
             return desktop.desktop_analyze_screen(inputs["reason"])
+        case "calendar_list_events":
+            return calendar.calendar_list_events(inputs.get("max_results", 10))
+        case "calendar_add_event":
+            return calendar.calendar_add_event(
+                inputs["title"],
+                inputs["start_datetime"],
+                inputs.get("end_datetime"),
+                inputs.get("description", ""),
+                inputs.get("reminder_minutes", 10)
+            )
+        case "calendar_delete_event":
+            return calendar.calendar_delete_event(inputs["title"])
+        case "gmail_send":
+            return gmail.gmail_send(
+                inputs["to"],
+                inputs["subject"],
+                inputs["body"],
+                inputs.get("cc", "")
+            )
+        case "gmail_read_inbox":
+            return gmail.gmail_read_inbox(inputs.get("max_results", 5))
+        case "meet_create":
+            return meet.meet_create(
+                inputs["title"],
+                inputs["start_datetime"],
+                inputs.get("end_datetime"),
+                inputs.get("attendees", []),
+                inputs.get("email_link_to", []),
+                inputs.get("description", "")
+            )
+        case "forms_load_profile":
+            return forms.forms_load_profile()
+        case "forms_update_profile":
+            return forms.forms_update_profile(inputs["field"], inputs["value"])
+        case "forms_generate_prefill_url":
+            return forms.forms_generate_prefill_url(inputs["form_url"], inputs["field_values"])
         case _:
             return f"[ AURA ] Unknown tool: {name}"
+

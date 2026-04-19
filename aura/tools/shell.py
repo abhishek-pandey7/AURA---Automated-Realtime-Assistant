@@ -8,7 +8,8 @@ TOOL_DEF = {
     "function": {
         "name": "bash",
         "description": (
-            "Run a bash shell command in the current working directory. "
+            "Run a shell command in the current working directory. "
+            "On Windows this is PowerShell — use PowerShell syntax only (e.g. Get-Date, not date +%Y-%m-%d). "
             "Returns stdout and stderr. Use for running scripts, installing packages, "
             "executing code, checking git status, listing processes, etc."
         ),

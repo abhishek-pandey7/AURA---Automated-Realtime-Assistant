@@ -1,5 +1,8 @@
 import json
 import os
+import platform
+import datetime
+import httpx
 from openai import OpenAI
 from rich.console import Console
 from rich.panel import Panel
@@ -12,12 +15,22 @@ from aura.tools import ALL_TOOL_DEFS, dispatch
 
 console = Console()
 
-_client = OpenAI(base_url=INFERX_BASE_URL, api_key=INFERX_API_KEY)
+# Generous timeout: Render free-tier can be slow on cold starts.
+# connect=15s  (time to establish TCP connection)
+# read=180s    (time to receive the full streamed response)
+_client = OpenAI(
+    base_url=INFERX_BASE_URL,
+    api_key=INFERX_API_KEY,
+    timeout=httpx.Timeout(timeout=180.0, connect=15.0),
+)
 
 SYSTEM_PROMPT = """You are AURA (Automated Realtime Assistant), an autonomous CLI agent running on the user's machine.
 Your job is to complete tasks by using tools — not just describe what to do.
 
-Current working directory: {cwd}
+System info:
+- OS: {os_name} (shell: {shell})
+- Current date/time: {now}  (timezone: Asia/Kolkata, IST)
+- Current working directory: {cwd}
 
 Core rules:
 1. Always prefer DOING over EXPLAINING. Use tools immediately.
@@ -28,7 +41,46 @@ Core rules:
 6. Never ask the user for information you can discover yourself with tools.
 7. Only ask the user if you genuinely need a decision only they can make.
 
-You have access to: bash, file operations, web tools, and raw Desktop UI control.
+AVAILABLE BUILT-IN TOOLS — always prefer these over writing scripts:
+- bash: run shell commands (Windows PowerShell — use PowerShell syntax, NOT Unix commands like `date +%Y-%m-%d`)
+- read_file / write_file / patch_file / list_dir / delete_file: file operations
+- web_search / web_fetch: search the web or fetch a URL
+- gmail_send(to, subject, body, cc?): send email via Gmail OAuth2 — use for ANY email task, NEVER use smtplib/yagmail
+- gmail_read_inbox(max_results?): read unread emails from Gmail inbox
+- calendar_list_events / calendar_add_event / calendar_delete_event: Google Calendar operations
+- meet_create(title, start_datetime, end_datetime?, attendees?, email_link_to?, description?): create a Google Meet + calendar event and email the link to people
+- forms_load_profile(): load user's stored personal data (name, email, phone, college, etc.)
+- forms_update_profile(field, value): save/update a field in the user's personal profile
+- forms_generate_prefill_url(form_url, field_values): generate a pre-filled Google Forms URL using entry IDs
+- desktop_*: full desktop UI control (click, type, scroll, read screen, etc.)
+
+CRITICAL DATE RULE:
+- You already know the current date and time from the system info above. NEVER call bash just to get the date.
+- For calendar events with relative dates ("tomorrow", "next Monday"), compute the ISO 8601 datetime yourself using the current date above and call `calendar_add_event` directly.
+
+CRITICAL EMAIL RULE:
+- ALWAYS use the `gmail_send` tool to send emails. NEVER write SMTP scripts, NEVER use smtplib, yagmail, or any other library.
+- The Gmail OAuth2 credentials are already configured in this project.
+
+CRITICAL MEET RULE:
+- To create a Google Meet: use `meet_create`. It creates the Meet link AND the Calendar event in one call.
+- To email the Meet link to people: use the `email_link_to` parameter of `meet_create`.
+- To add people as calendar attendees with invites: use the `attendees` parameter of `meet_create`.
+- NEVER try to create a Meet via the browser or desktop tools — the API does it automatically.
+
+CRITICAL FORMS RULE:
+- Before filling ANY web form, first call `forms_load_profile` to get the user's data.
+- For Google Forms where you know the entry IDs: call `forms_generate_prefill_url`, then open the URL.
+- For any other form (without entry IDs):
+  1. Call `forms_load_profile`.
+  2. Open the form URL via browser/desktop tools.
+  3. Use `desktop_read_screen` to see the form fields.
+  4. Match each label to the closest profile field and fill using `desktop_type`.
+  5. Click Submit when done.
+
+CRITICAL SHELL RULE:
+- This machine runs Windows with PowerShell. Use PowerShell commands only.
+- To get date: use `(Get-Date).ToString('yyyy-MM-dd')` — but prefer to compute dates yourself from the system info above.
 
 CRITICAL DESKTOP RULES:
 - PERCEPTION FIRST: Before interacting with ANY application or website, call `desktop_read_screen` to get a complete spatial map of all text visible on screen (with exact x, y coordinates). Read and understand the full output before acting.
@@ -47,7 +99,10 @@ def run_agent(goal: str, memory: Memory, max_iterations: int = 30) -> str:
     Returns the final summary string.
     """
     cwd = os.getcwd()
-    system = SYSTEM_PROMPT.format(cwd=cwd)
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    os_name = platform.system()  # "Windows", "Linux", "Darwin"
+    shell = "PowerShell" if os_name == "Windows" else "bash"
+    system = SYSTEM_PROMPT.format(cwd=cwd, now=now, os_name=os_name, shell=shell)
 
     memory.add_user(goal)
 
@@ -73,14 +128,21 @@ def run_agent(goal: str, memory: Memory, max_iterations: int = 30) -> str:
                     break  # Success
                 except Exception as e:
                     import time
-                    err_str = str(e)
+                    err_str = str(e).lower()
                     last_error = e
-                    if "502" in err_str or "500" in err_str or "503" in err_str:
-                        console.print(f"  [dim]Proxy glitch ({e}) — retrying ({p_retry+1}/3)...[/dim]")
-                        time.sleep(2)
+                    # Retry on server errors AND timeouts (Render cold-start, slow inference)
+                    is_retryable = (
+                        "502" in err_str or "500" in err_str or "503" in err_str
+                        or "timed out" in err_str or "timeout" in err_str
+                        or "connection" in err_str or "read error" in err_str
+                    )
+                    if is_retryable and p_retry < 2:
+                        wait = (p_retry + 1) * 5  # 5s, 10s back-off
+                        console.print(f"  [dim]Retryable error ({type(e).__name__}) — retrying in {wait}s ({p_retry+1}/3)...[/dim]")
+                        time.sleep(wait)
                         continue
                     else:
-                        break  # Break for 4xx errors
+                        break
                         
             if response is None:
                 console.print(f"[bold red]LLM error:[/bold red] {last_error}")
