@@ -9,12 +9,14 @@ AURA — Automated Realtime Assistant
 Usage:
   aura run              Start an interactive AURA session in the current directory
   aura run "<goal>"     Run a single goal non-interactively and exit
+  aura learn "<goal>"   Record your actions and generate a new tool macro
   aura version          Show version
   aura help             Show this help
 
 Examples:
   aura run
   aura run "create a Flask app with a /ping endpoint and run it"
+  aura learn "how to check my bank balance"
 """
 
 
@@ -37,6 +39,15 @@ def main():
         else:
             # Interactive REPL mode
             _run_interactive()
+        return
+
+    if args[0] == "learn":
+        if len(args) > 1:
+            goal = " ".join(args[1:])
+            from aura.learning import learn_workflow
+            learn_workflow(goal)
+        else:
+            print("Usage: aura learn \"<goal>\"")
         return
 
     # Anything else — treat as a goal directly

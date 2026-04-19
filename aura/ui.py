@@ -30,6 +30,7 @@ TAGLINE = "Automated  Realtime  Assistant"
 HELP_TEXT = """
 [bold cyan]Commands:[/bold cyan]
   [bold]/voice[/bold]      Speak a command using your microphone
+  [bold]/learn <goal>[/bold] Record your actions to generate a new tool
   [bold]/help[/bold]       Show this help
   [bold]/clear[/bold]      Clear conversation history
   [bold]/sessions[/bold]   List past sessions
@@ -143,6 +144,14 @@ def handle_command(cmd: str, memory: Memory) -> tuple[bool, Memory]:
 
     elif cmd == "/tools":
         print_tools()
+
+    elif cmd.startswith("/learn "):
+        goal = cmd[7:].strip()
+        if goal:
+            from aura.learning import learn_workflow
+            learn_workflow(goal)
+        else:
+            console.print("  [red]Please provide a goal. Example: /learn how to check my bank balance[/red]")
 
     elif cmd == "/cwd":
         console.print(f"  [bold]{os.getcwd()}[/bold]")
