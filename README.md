@@ -119,8 +119,8 @@ aura/
 
 Provide the necessary execution credentials in a configuration file:
 ```bash
-git clone https://github.com/your-username/LimitHitters_Syn3rgy_AbhishekPandey
-cd LimitHitters_Syn3rgy_AbhishekPandey
+git clone https://github.com/abhishek-pandey7/AURA---Automated-Realtime-Assistant
+cd AURA---Automated-Realtime-Assistant
 cp .env.example .env
 ```
 
