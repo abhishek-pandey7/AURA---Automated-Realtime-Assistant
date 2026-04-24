@@ -249,6 +249,19 @@ AURA bridges multiple complex open-source libraries.
 
 ---
 
-## 12. License
+## 13. Future Scope
+
+AURA is under active development. Our roadmap for future enhancements includes:
+
+*   **Multi-Agent Orchestration**: Enabling multiple AURA instances to collaborate on large-scale engineering projects.
+*   **Long-term Memory (RAG)**: Implementing a vector-based persistent memory system to allow the agent to remember project contexts and user preferences across multiple months.
+*   **Cloud-Native Deployment**: Simplified, one-click deployment templates for AWS, GCP, and Azure with pre-configured virtual desktop environments (VNC/RDP) for vision-based tasks.
+*   **Dockerized Infrastructure**: A fully containerized version of AURA designed for high-availability execution in CI/CD pipelines and remote clusters.
+*   **Web Dashboard**: A central management interface to monitor execution traces, manage secrets, and interact with remote AURA instances via a web browser.
+*   **Native IDE Plugins**: Deep integration with VS Code and JetBrains for a more seamless "pair programming" experience.
+
+---
+
+## 14. License
 
 Released under standard MIT License privileges.
