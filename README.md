@@ -260,8 +260,3 @@ AURA is under active development. Our roadmap for future enhancements includes:
 *   **Web Dashboard**: A central management interface to monitor execution traces, manage secrets, and interact with remote AURA instances via a web browser.
 *   **Native IDE Plugins**: Deep integration with VS Code and JetBrains for a more seamless "pair programming" experience.
 
----
-
-## 14. License
-
-Released under standard MIT License privileges.
